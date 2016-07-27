@@ -24,7 +24,12 @@ class NeuralNetwork:
                 return self.output
 
             def calculate_err(self, weight_deltas):
-                self.delta = sigmoid(self.weight_sum)*sum(weight_deltas)
+                '''
+
+                :param weight_deltas:
+                :return: weighted delta
+                '''
+                self.delta = sigmoid(self.weight_sum, True)*sum(weight_deltas)
                 return self.delta*self.weights
 
             def reweight(self):
@@ -44,8 +49,14 @@ class NeuralNetwork:
             return self.outputs
 
         def calculate_errs(self, weight_prev_deltas):
+            '''
+
+            :param weight_prev_deltas:
+            :return: matrix of weighed deltas
+            '''
             pre_d = [self.neurons[i].calculate_err(weight_prev_deltas[i]) for i in range(len(self.neurons))]
             self.deltas = np.array(pre_d).T
+            return  self.deltas
 
         def reweight(self):
             pass
@@ -66,12 +77,11 @@ class NeuralNetwork:
         return o
 
     def backprop(self, error):
-        #last layer calculate its weighted deltas
-        # короч, это неправильно - когда обрабатываем последний слой нужно передавать ошибку *  количество нейронов в предпоследнем слое
-        deltas_o = self.layers[-1].calculate_errs(error*self.sizes[-1])
+        errs = [[error[i]] for i in range(len(error))]
+        deltas_o = self.layers[-1].calculate_errs(errs)
 
-        for layer in self.layers:
-            pass
+        for layer in self.layers[-2::-1]:
+            deltas_o = layer.calculate_errs(deltas_o)
 
     def train(self, inputs, answers):
         for i in range(len(inputs)):
