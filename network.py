@@ -1,21 +1,21 @@
 import numpy as np
 import dill
 
-def sigmoid(x, deriv = False):
+
+def sigmoid(x, deriv=False):
     if deriv:
-        return sigmoid(x)* (1 - sigmoid(x))
-    return 1/(1 + np.exp(-x))
+        return sigmoid(x) * (1 - sigmoid(x))
+    return 1 / (1 + np.exp(-x))
 
 
 class NeuralNetwork:
-
     class NeuralLayer:
 
         class Neuron:
             def __init__(self, syn_count, bias, learning_rate):
                 self.learning_rate = learning_rate
                 self.bias = bias
-                self.weights = np.random.randn(syn_count)
+                self.weights = np.random.uniform(size=(syn_count,))
                 self.inputs = 0
                 self.weight_sum = 0
 
@@ -25,20 +25,19 @@ class NeuralNetwork:
                 self.output = sigmoid(self.weight_sum)
                 return self.output
 
-            def calculate_err(self, weight_deltas, outp = False):
+            def calculate_err(self, weight_deltas, outp=False):
                 '''
                 :param weight_deltas:
                 :return: weighted delta
                 '''
-                self.delta = sigmoid(self.weight_sum, True)*sum(weight_deltas)
+                self.delta = sigmoid(self.weight_sum, True) * sum(weight_deltas)
                 if outp:
                     self.delta *= -1
-                return self.delta*self.weights
+                return self.delta * self.weights
 
             def reweight(self):
                 for i in range(len(self.weights)):
-                    self.weights[i] -= self.learning_rate*self.delta*self.inputs[i]
-
+                    self.weights[i] -= self.learning_rate * self.delta * self.inputs[i]
 
         def __init__(self, count, syn_per_neuron, learning_rate):
             self.inputs = []
@@ -52,27 +51,28 @@ class NeuralNetwork:
             self.outputs = [n.activate(self.inputs) for n in self.neurons]
             return self.outputs
 
-        def calculate_errs(self, weight_prev_deltas, outp = False):
+        def calculate_errs(self, weight_prev_deltas, outp=False):
             '''
             :param weight_prev_deltas:
             :return: matrix of weighed deltas
             '''
             pre_d = [self.neurons[i].calculate_err(weight_prev_deltas[i], outp) for i in range(len(self.neurons))]
             self.deltas = np.array(pre_d).T
-            return  self.deltas
+            return self.deltas
 
         def reweight(self):
             for neuron in self.neurons:
                 neuron.reweight()
 
-    def __init__(self, sizes = None, learning_rate = 0.5):
+    def __init__(self, sizes=None, learning_rate=0.5):
         self.layers = []
         self.sizes = sizes
         if sizes is not None:
             self.init_weights(sizes, learning_rate)
 
-    def init_weights(self, sizes, learning_rate = 0.5):
+    def init_weights(self, sizes, learning_rate=0.5):
         self.layers = []
+        self.sizes = sizes
         self.layers.append(self.NeuralLayer(sizes[0], sizes[0], learning_rate))
         for i in range(1, len(sizes)):
             self.layers.append(self.NeuralLayer(sizes[i], sizes[i - 1], learning_rate))
@@ -112,8 +112,10 @@ class NeuralNetwork:
         if not self.layers:
             input_size = len(x[0])
             output_size = len(y[0])
-            self.init_weights([input_size, input_size, output_size])
-
+            sizes = [input_size, input_size, output_size]
+            self.init_weights(sizes)
+        x = np.array(x)
+        y = np.array(y)
         j = 0
         while True:
             n = len(x)
@@ -139,6 +141,4 @@ class NeuralNetwork:
 
     def load_model(self, path):
         with open(path, 'rb') as f:
-             self = dill.load(f)
-
-
+            self = dill.load(f)
