@@ -96,19 +96,33 @@ class NeuralNetwork:
             res.append(self.feed_forward(i))
         return res
 
+    def train(self, x, y, eps=0.0001, verbose=1000):
+        '''
 
-    def train(self, inputs, answers):
-
-        for j in range(100000):
-            for i in range(len(inputs)):
-                output = self.feed_forward(inputs[i])
-                error  = answers[i] - output
-                q_egitrror = 0.5*sum(error)
-                if j % 10000 == 0:
-                    print(output)
+        :param x: train dataset
+        :param y: labels
+        :param eps: training stops when MSE < eps
+        :param verbose: number of iterations between printing info
+        :return:
+        '''
+        j = 0
+        while True:
+            n = len(x)
+            error = 0  # mean squared error
+            for i in range(n):
+                output = self.feed_forward(x[i])
+                error = y[i] - output
+                error += sum(error ** 2)
                 self.backprop(error)
-            if j % 10000 == 0:
-                print()
+
+            error /= n
+            if j % verbose == 0:
+                print("[{}]: {}".format(j, error))
+
+            if error < eps:
+                break
+
+            j += 1
 
     def save_model(self, path):
         with open(path, 'w+b') as f:
