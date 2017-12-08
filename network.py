@@ -65,14 +65,17 @@ class NeuralNetwork:
             for neuron in self.neurons:
                 neuron.reweight()
 
-    def __init__(self, inputs_count, sizes, learning_rate = 0.5):
+    def __init__(self, sizes = None, learning_rate = 0.5):
         self.layers = []
         self.sizes = sizes
-        for i in range(len(sizes)):
-            if i == 0:
-                self.layers.append(self.NeuralLayer(sizes[i], inputs_count, learning_rate))
-            else:
-                self.layers.append(self.NeuralLayer(sizes[i], sizes[i-1], learning_rate))
+        if sizes is not None:
+            self.init_weights(sizes, learning_rate)
+
+    def init_weights(self, sizes, learning_rate):
+        self.layers = []
+        self.layers.append(self.NeuralLayer(sizes[0], sizes[0], learning_rate))
+        for i in range(1, len(sizes)):
+            self.layers.append(self.NeuralLayer(sizes[i], sizes[i - 1], learning_rate))
 
     def feed_forward(self, x):
         o = self.layers[0].feed_forward(x)
@@ -105,15 +108,16 @@ class NeuralNetwork:
         :param verbose: number of iterations between printing info
         :return:
         '''
+
         j = 0
         while True:
             n = len(x)
             error = 0  # mean squared error
             for i in range(n):
                 output = self.feed_forward(x[i])
-                error = y[i] - output
-                error += sum(error ** 2)
-                self.backprop(error)
+                delta = y[i] - output
+                error += sum(delta** 2)
+                self.backprop(delta)
 
             error /= n
             if j % verbose == 0:
