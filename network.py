@@ -1,9 +1,11 @@
 import numpy as np
+import dill
 
 def sigmoid(x, deriv = False):
     if deriv:
         return sigmoid(x)* (1 - sigmoid(x))
     return 1/(1 + np.exp(-x))
+
 
 class NeuralNetwork:
 
@@ -25,7 +27,6 @@ class NeuralNetwork:
 
             def calculate_err(self, weight_deltas, outp = False):
                 '''
-
                 :param weight_deltas:
                 :return: weighted delta
                 '''
@@ -53,7 +54,6 @@ class NeuralNetwork:
 
         def calculate_errs(self, weight_prev_deltas, outp = False):
             '''
-
             :param weight_prev_deltas:
             :return: matrix of weighed deltas
             '''
@@ -90,6 +90,12 @@ class NeuralNetwork:
         for layer in self.layers:
             layer.reweight()
 
+    def predict(self, x):
+        res = []
+        for i in x:
+            res.append(self.feed_forward(i))
+        return res
+
 
     def train(self, inputs, answers):
 
@@ -97,20 +103,19 @@ class NeuralNetwork:
             for i in range(len(inputs)):
                 output = self.feed_forward(inputs[i])
                 error  = answers[i] - output
-                q_error = 0.5*sum(error)
+                q_egitrror = 0.5*sum(error)
                 if j % 10000 == 0:
                     print(output)
                 self.backprop(error)
             if j % 10000 == 0:
                 print()
 
+    def save_model(self, path):
+        with open(path, 'w+b') as f:
+            dill.dump(self, f)
+
+    def load_model(self, path):
+        with open(path, 'rb') as f:
+             self = dill.load(f)
 
 
-jimmy = NeuralNetwork(2, [4, 1])
-X = np.array([[0, 1],
-              [1, 0],
-              [0, 0],
-              [1, 1]])
-# output matrix
-Y = np.array([0,0,0,1])
-jimmy.train(X,Y.T)
