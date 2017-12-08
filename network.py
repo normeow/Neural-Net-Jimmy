@@ -71,7 +71,7 @@ class NeuralNetwork:
         if sizes is not None:
             self.init_weights(sizes, learning_rate)
 
-    def init_weights(self, sizes, learning_rate):
+    def init_weights(self, sizes, learning_rate = 0.5):
         self.layers = []
         self.layers.append(self.NeuralLayer(sizes[0], sizes[0], learning_rate))
         for i in range(1, len(sizes)):
@@ -99,7 +99,7 @@ class NeuralNetwork:
             res.append(self.feed_forward(i))
         return res
 
-    def train(self, x, y, eps=0.0001, verbose=1000):
+    def train(self, x, y, eps=0.001, verbose=1000):
         '''
 
         :param x: train dataset
@@ -108,6 +108,11 @@ class NeuralNetwork:
         :param verbose: number of iterations between printing info
         :return:
         '''
+        # default arch
+        if not self.layers:
+            input_size = len(x[0])
+            output_size = len(y[0])
+            self.init_weights([input_size, input_size, output_size])
 
         j = 0
         while True:
@@ -116,7 +121,7 @@ class NeuralNetwork:
             for i in range(n):
                 output = self.feed_forward(x[i])
                 delta = y[i] - output
-                error += sum(delta** 2)
+                error += sum(delta ** 2)
                 self.backprop(delta)
 
             error /= n
