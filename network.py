@@ -1,6 +1,4 @@
 import numpy as np
-import dill
-
 
 def sigmoid(x):
     return 1 / (1 + np.exp(-x))
@@ -21,21 +19,29 @@ class NeuralNetwork:
         self.sizes = sizes
 
         if sizes is None:
+            self.layers_count = 0
             return
 
         self.layers_count = len(sizes)
+        self.init_weights()
+
+    def init_weights(self):
+        self.layers_count = len(self.sizes)
         for i in range(self.layers_count - 1):
-            theta_i = np.random.rand(sizes[i + 1], sizes[i])
+            theta_i = np.random.rand(self.sizes[i + 1], self.sizes[i])
             self.weights.append(theta_i.copy())
 
-        self.inputs = [np.zeros((i,)) for i in sizes]
+        self.inputs = [np.zeros((i,)) for i in self.sizes]
 
     def cost_func(self, y_true, y_pred):
         return sum((y_true - y_pred) ** 2)
 
     def train(self, x, y, learning_rate=0.2, epochs=100, verbose=10):
-        # TODO if layers is None set default arch
-        x = np.array(x)
+
+        if self.sizes is None:
+            self.sizes = [x.shape[1], x.shape[1], y.shape[1]]
+            self.init_weights()
+
         n = len(x)
         for epoch in range(epochs):
             mse = 0
@@ -78,4 +84,3 @@ class NeuralNetwork:
 
     def load_weights(self, fname):
         self.weights = np.load(fname)
-

@@ -13,7 +13,7 @@ y = encoder.fit_transform(np.array(digits.target).reshape(-1, 1))
 X_train, X_valid, y_train, y_valid = train_test_split(X, y, test_size=0.2)
 
 print("Training...")
-jimmy = NeuralNetwork([64, 64, 10])
+jimmy = NeuralNetwork()
 jimmy.train(X_train, y_train, verbose=10, epochs=50)
 print("Done training")
 
