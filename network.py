@@ -33,11 +33,10 @@ class NeuralNetwork:
     def cost_func(self, y_true, y_pred):
         return sum((y_true - y_pred) ** 2)
 
-    def train(self, x, y, learning_rate=0.2, eps=0.01):
+    def train(self, x, y, learning_rate=0.2, epochs=100, verbose=10):
         # TODO if layers is None set default arch
         x = np.array(x)
         n = len(x)
-        epochs = 7000
         for epoch in range(epochs):
             mse = 0
 
@@ -58,7 +57,7 @@ class NeuralNetwork:
                     self.weights[j] += np.multiply(learning_rate, np.outer(deltas[j], self.inputs[j]))
 
             mse /= n
-            if epoch % 1000 == 0:
+            if epoch % verbose == 0:
                 print("[{}] MSE: {}".format(epoch, mse))
 
     def feed_forward(self, x):
@@ -69,10 +68,14 @@ class NeuralNetwork:
         return self.inputs[-1]
 
     def predict(self, x):
-        return self.feed_forward(x)
+        res = []
+        for x_i in x:
+            res.append(self.feed_forward(x_i))
+        return res
 
     def save_weights(self, fname):
         np.save(fname, np.array(self.weights))
 
     def load_weights(self, fname):
         self.weights = np.load(fname)
+
