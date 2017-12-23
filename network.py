@@ -2,143 +2,77 @@ import numpy as np
 import dill
 
 
-def sigmoid(x, deriv=False):
-    if deriv:
-        return sigmoid(x) * (1 - sigmoid(x))
+def sigmoid(x):
     return 1 / (1 + np.exp(-x))
 
 
+def sigmoid_prime(x):
+    return sigmoid(x) * (1 - sigmoid(x))
+
+
 class NeuralNetwork:
-    class NeuralLayer:
 
-        class Neuron:
-            def __init__(self, syn_count, bias, learning_rate):
-                self.learning_rate = learning_rate
-                self.bias = bias
-                self.weights = np.random.uniform(size=(syn_count,))
-                self.inputs = 0
-                self.weight_sum = 0
-
-            def activate(self, x):
-                self.inputs = x
-                self.weight_sum = np.dot(x, self.weights) + self.bias
-                self.output = sigmoid(self.weight_sum)
-                return self.output
-
-            def calculate_err(self, weight_deltas, outp=False):
-                '''
-                :param weight_deltas:
-                :return: weighted delta
-                '''
-                self.delta = sigmoid(self.weight_sum, True) * sum(weight_deltas)
-                if outp:
-                    self.delta *= -1
-                return self.delta * self.weights
-
-            def reweight(self):
-                for i in range(len(self.weights)):
-                    self.weights[i] -= self.learning_rate * self.delta * self.inputs[i]
-
-        def __init__(self, count, syn_per_neuron, learning_rate):
-            self.inputs = []
-            self.outputs = []
-            self.deltas = None
-            self.bias = np.random.sample()
-            self.neurons = [self.Neuron(syn_per_neuron, self.bias, learning_rate) for i in range(count)]
-
-        def feed_forward(self, inputs):
-            self.inputs = inputs
-            self.outputs = [n.activate(self.inputs) for n in self.neurons]
-            return self.outputs
-
-        def calculate_errs(self, weight_prev_deltas, outp=False):
-            '''
-            :param weight_prev_deltas:
-            :return: matrix of weighed deltas
-            '''
-            pre_d = [self.neurons[i].calculate_err(weight_prev_deltas[i], outp) for i in range(len(self.neurons))]
-            self.deltas = np.array(pre_d).T
-            return self.deltas
-
-        def reweight(self):
-            for neuron in self.neurons:
-                neuron.reweight()
-
-    def __init__(self, sizes=None, learning_rate=0.5):
-        self.layers = []
+    def __init__(self, sizes=None):
+        '''
+        :param sizes: list represents network layers, a[i] - number of neurons in i-th layer
+        '''
+        self.weights = []
+        self.inputs = []
         self.sizes = sizes
-        if sizes is not None:
-            self.init_weights(sizes, learning_rate)
 
-    def init_weights(self, sizes, learning_rate=0.5):
-        self.layers = []
-        self.sizes = sizes
-        self.layers.append(self.NeuralLayer(sizes[0], sizes[0], learning_rate))
-        for i in range(1, len(sizes)):
-            self.layers.append(self.NeuralLayer(sizes[i], sizes[i - 1], learning_rate))
+        if sizes is None:
+            return
+
+        self.layers_count = len(sizes)
+        for i in range(self.layers_count - 1):
+            theta_i = np.random.rand(sizes[i + 1], sizes[i])
+            self.weights.append(theta_i.copy())
+
+        self.inputs = [np.zeros((i,)) for i in sizes]
+
+    def cost_func(self, y_true, y_pred):
+        return sum((y_true - y_pred) ** 2)
+
+    def train(self, x, y, learning_rate=0.2, eps=0.01):
+        # TODO if layers is None set default arch
+        x = np.array(x)
+        n = len(x)
+        epochs = 7000
+        for epoch in range(epochs):
+            mse = 0
+
+            for i in range(n):
+                y_pred = self.feed_forward(x[i])
+                mse += self.cost_func(y[i], y_pred)
+
+                deltas = [np.zeros((i,)) for i in self.sizes[1:]]
+                delta_output = np.multiply(sigmoid_prime(y_pred), y[i] - y_pred)
+                deltas[self.layers_count - 2] = delta_output
+
+                for j in range(self.layers_count - 3, -1, -1):
+                    deriv = sigmoid_prime(self.inputs[j + 1])
+                    delta = np.multiply(deriv, np.dot(deltas[j + 1], self.weights[j + 1]))
+                    deltas[j] = delta
+
+                for j in range(self.layers_count - 1):
+                    self.weights[j] += np.multiply(learning_rate, np.outer(deltas[j], self.inputs[j]))
+
+            mse /= n
+            if epoch % 1000 == 0:
+                print("[{}] MSE: {}".format(epoch, mse))
 
     def feed_forward(self, x):
-        o = self.layers[0].feed_forward(x)
-        for layer in self.layers[1:]:
-            o = layer.feed_forward(o)
-        return o
 
-    def backprop(self, error):
-        errs = [[error[i]] for i in range(len(error))]
-        deltas_o = self.layers[-1].calculate_errs(errs, True)
-
-        for layer in self.layers[-2::-1]:
-            deltas_o = layer.calculate_errs(deltas_o)
-
-        for layer in self.layers:
-            layer.reweight()
+        self.inputs[0] = x
+        for i in range(self.layers_count - 1):
+            self.inputs[i + 1] = sigmoid(np.dot(self.weights[i], self.inputs[i]))
+        return self.inputs[-1]
 
     def predict(self, x):
-        res = []
-        for i in x:
-            res.append(self.feed_forward(i))
-        return res
+        return self.feed_forward(x)
 
-    def train(self, x, y, eps=0.001, verbose=1000):
-        '''
+    def save_weights(self, fname):
+        np.save(fname, np.array(self.weights))
 
-        :param x: train dataset
-        :param y: labels
-        :param eps: training stops when MSE < eps
-        :param verbose: number of iterations between printing info
-        :return:
-        '''
-        # default arch
-        if not self.layers:
-            input_size = len(x[0])
-            output_size = len(y[0])
-            sizes = [input_size, input_size, output_size]
-            self.init_weights(sizes)
-        x = np.array(x)
-        y = np.array(y)
-        j = 0
-        while True:
-            n = len(x)
-            error = 0  # mean squared error
-            for i in range(n):
-                output = self.feed_forward(x[i])
-                delta = y[i] - output
-                error += sum(delta ** 2)
-                self.backprop(delta)
-
-            error /= n
-            if j % verbose == 0:
-                print("[{}]: {}".format(j, error))
-
-            if error < eps:
-                break
-
-            j += 1
-
-    def save_model(self, path):
-        with open(path, 'w+b') as f:
-            dill.dump(self, f)
-
-    def load_model(self, path):
-        with open(path, 'rb') as f:
-            self = dill.load(f)
+    def load_weights(self, fname):
+        self.weights = np.load(fname)
